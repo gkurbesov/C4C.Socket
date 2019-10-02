@@ -1,15 +1,17 @@
-﻿namespace C4C.Sockets.Arguments
+﻿using System;
+
+namespace C4C.Sockets.Arguments
 {
     /// <summary>
     /// Аргумент статуса отправки сообщения от клиента к серверу
     /// </summary>
-    public class SendClientArg
+    public class SendClientArgs : EventArgs
     {
         /// <summary>
         /// Размер отправленной информации
         /// </summary>
         public int TotalBytes { get; }
-        public SendClientArg(int size)
+        public SendClientArgs(int size)
         {
             TotalBytes = size;
         }

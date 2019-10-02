@@ -5,7 +5,7 @@ namespace C4C.Sockets.Arguments
     /// <summary>
     /// Информация о клиенте сервера
     /// </summary>
-    public class ClientConnection
+    public class ClientConnectionArgs : EventArgs
     {
         /// <summary>
         /// Целевой клиент
@@ -19,17 +19,17 @@ namespace C4C.Sockets.Arguments
         /// Удаленный порт сокета
         /// </summary>
         public int ClientPort { get; } = -1;
-        internal ClientConnection() { }
-        internal ClientConnection(IntPtr id)
+        internal ClientConnectionArgs() { }
+        internal ClientConnectionArgs(IntPtr id)
         {
             ClientID = id;
         }
-        internal ClientConnection(IntPtr id, string ip)
+        internal ClientConnectionArgs(IntPtr id, string ip)
         {
             ClientID = id;
             ClientIP = ip;
         }
-        internal ClientConnection(IntPtr id, string ip, int port)
+        internal ClientConnectionArgs(IntPtr id, string ip, int port)
         {
             ClientID = id;
             ClientIP = ip;

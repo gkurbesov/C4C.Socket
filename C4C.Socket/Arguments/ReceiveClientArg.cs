@@ -1,8 +1,9 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 
 namespace C4C.Sockets.Arguments
 {
-    public class ReceiveClientArg
+    public class ReceiveClientArgs: EventArgs
     {
         /// <summary>
         /// Текстовые данные
@@ -17,8 +18,8 @@ namespace C4C.Sockets.Arguments
         /// </summary>
         private Encoding StringEcncoding { get; set; } = Encoding.UTF8;
 
-        internal ReceiveClientArg() { }
-        internal ReceiveClientArg(byte[] value, Encoding encoding)
+        internal ReceiveClientArgs() { }
+        internal ReceiveClientArgs(byte[] value, Encoding encoding)
         {
             MessageBytes = value;
             StringEcncoding = encoding;

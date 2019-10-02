@@ -1,10 +1,12 @@
 ﻿
+using System;
+
 namespace C4C.Sockets.Arguments
 {
     /// <summary>
     /// Аргумент ошибок слиента
     /// </summary>
-    public class ErrorClientArg
+    public class ErrorClientArgs : EventArgs
     {
         /// <summary>
         /// Тип возникающей ошибки
@@ -15,8 +17,8 @@ namespace C4C.Sockets.Arguments
         /// </summary>
         public string Message { get; } = string.Empty;
 
-        internal ErrorClientArg() { }
-        internal ErrorClientArg(ClientErrorType type, string message)
+        internal ErrorClientArgs() { }
+        internal ErrorClientArgs(ClientErrorType type, string message)
         {
             Type = type;
             Message = message;

@@ -94,7 +94,7 @@ namespace C4C.Sockets.Udp
         /// <param name="message">сообщение об ошибке</param>
         private void CallErrorServer(ServerErrorType type, string message = "")
         {
-            Task.Factory.StartNew(() => { ServerErrors?.Invoke(this, new Arguments.ErrorServerArg(type, message)); });
+            Task.Factory.StartNew(() => { ServerErrors?.Invoke(this, new Arguments.ErrorServerArgs(type, message)); });
         }
         /// <summary>
         /// Метод для передачи статус сервера
@@ -111,7 +111,7 @@ namespace C4C.Sockets.Udp
         /// <param name="value">Принятые данные</param>
         private void CallReceive(EndPoint point, byte[] value)
         {
-            Task.Factory.StartNew(() => { ReceiveMessage?.Invoke(this, new Arguments.ReceiveServerArg(point, value, StringEcncoding)); });
+            Task.Factory.StartNew(() => { ReceiveMessage?.Invoke(this, new Arguments.ReceiveServerArgs(point, value, StringEcncoding)); });
         }
         /// <summary>
         /// Метод вызова события о статусе доставки данных
@@ -120,7 +120,7 @@ namespace C4C.Sockets.Udp
         /// <param name="size">количество переданных данных</param>
         private void CallSendResult(EndPoint point, int size)
         {
-            Task.Factory.StartNew(() => { SendMessage?.Invoke(this, new Arguments.SendServerArg(point, size)); });
+            Task.Factory.StartNew(() => { SendMessage?.Invoke(this, new Arguments.SendServerArgs(point, size)); });
         }
         #endregion
 

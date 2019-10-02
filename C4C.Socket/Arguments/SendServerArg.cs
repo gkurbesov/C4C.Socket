@@ -6,7 +6,7 @@ namespace C4C.Sockets.Arguments
     /// <summary>
     /// Аргумент статуса отправки сообщения от сервера
     /// </summary>
-    public class SendServerArg
+    public class SendServerArgs : EventArgs
     {
         /// <summary>
         /// Целевой клиент
@@ -20,13 +20,13 @@ namespace C4C.Sockets.Arguments
         /// Размер отправленной информации
         /// </summary>
         public int TotalBytes { get; } = -1;
-        internal SendServerArg(IntPtr id, int size)
+        internal SendServerArgs(IntPtr id, int size)
         {
             ClientID = id;
             TotalBytes = size;
         }
 
-        internal SendServerArg(EndPoint point, int size)
+        internal SendServerArgs(EndPoint point, int size)
         {
             ClientEndPoint = point;
             TotalBytes = size;

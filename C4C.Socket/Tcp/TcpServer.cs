@@ -116,7 +116,7 @@ namespace C4C.Sockets.Tcp
         /// <param name="message">сообщение об ошибке</param>
         private void CallErrorServer(ServerErrorType type, string message = "")
         {
-            Task.Factory.StartNew(() => { ServerErrors?.Invoke(this, new Arguments.ErrorServerArg(type, message)); });
+            Task.Factory.StartNew(() => { ServerErrors?.Invoke(this, new Arguments.ErrorServerArgs(type, message)); });
         }
         /// <summary>
         /// Метод для передачи статус сервера
@@ -134,7 +134,7 @@ namespace C4C.Sockets.Tcp
         /// <param name="port">Удаленный порт</param>
         private void CallConnected(ConnectionValue client)
         {
-            Task.Factory.StartNew(() => { ClientConnect?.Invoke(this, new Arguments.ClientConnection(client.SocketId, client.RemoteIP, client.RemotePort)); });
+            Task.Factory.StartNew(() => { ClientConnect?.Invoke(this, new Arguments.ClientConnectionArgs(client.SocketId, client.RemoteIP, client.RemotePort)); });
         }
         /// <summary>
         /// Вызов события об отключении
@@ -144,7 +144,7 @@ namespace C4C.Sockets.Tcp
         /// <param name="port">Удаленный порт</param>
         private void CallDisconnected(ConnectionValue client)
         {
-            Task.Factory.StartNew(() => { ClientDisconnect?.Invoke(this, new Arguments.ClientConnection(client.SocketId, client.RemoteIP, client.RemotePort)); });
+            Task.Factory.StartNew(() => { ClientDisconnect?.Invoke(this, new Arguments.ClientConnectionArgs(client.SocketId, client.RemoteIP, client.RemotePort)); });
         }
         /// <summary>
         /// Метод вызова события о приеме нового сообщения
@@ -153,7 +153,7 @@ namespace C4C.Sockets.Tcp
         /// <param name="value">Принятые данные</param>
         private void CallReceive(IntPtr client_id, byte[] value)
         {
-            Task.Factory.StartNew(() => { ReceiveMessage?.Invoke(this, new Arguments.ReceiveServerArg(client_id, value, StringEcncoding)); });
+            Task.Factory.StartNew(() => { ReceiveMessage?.Invoke(this, new Arguments.ReceiveServerArgs(client_id, value, StringEcncoding)); });
         }
         /// <summary>
         /// Метод вызова события о статусе доставки данных
@@ -162,7 +162,7 @@ namespace C4C.Sockets.Tcp
         /// <param name="size">количество переданных данных</param>
         private void CallSendResult(IntPtr client_id, int size)
         {
-            Task.Factory.StartNew(() => { SendMessage?.Invoke(this, new Arguments.SendServerArg(client_id, size)); });
+            Task.Factory.StartNew(() => { SendMessage?.Invoke(this, new Arguments.SendServerArgs(client_id, size)); });
         }
         #endregion
 

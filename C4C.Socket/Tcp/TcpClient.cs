@@ -87,7 +87,7 @@ namespace C4C.Sockets.Tcp
         /// <param name="message">сообщение об ошибке</param>
         internal void CallErrorClient(ClientErrorType type, string message)
         {
-            Task.Factory.StartNew(() => ClientErrors?.Invoke(this, new ErrorClientArg(type, message)));
+            Task.Factory.StartNew(() => ClientErrors?.Invoke(this, new ErrorClientArgs(type, message)));
         }
         /// <summary>
         /// Событие о получении новых данных
@@ -95,7 +95,7 @@ namespace C4C.Sockets.Tcp
         /// <param name="value">полученные данные от сервера</param>
         internal void CallReceive(byte[] value)
         {
-            Task.Factory.StartNew(() => { ReceiveMessage?.Invoke(this, new ReceiveClientArg(value, StringEcncoding)); });
+            Task.Factory.StartNew(() => { ReceiveMessage?.Invoke(this, new ReceiveClientArgs(value, StringEcncoding)); });
         }
         /// <summary>
         /// Вызов события об успешной отправки данных
@@ -103,7 +103,7 @@ namespace C4C.Sockets.Tcp
         /// <param name="send_size"></param>
         internal void CallSend(int send_size)
         {
-            Task.Factory.StartNew(() => { SendMessage?.Invoke(this, new SendClientArg(send_size)); });
+            Task.Factory.StartNew(() => { SendMessage?.Invoke(this, new SendClientArgs(send_size)); });
         }
 
         internal void CallConnected()

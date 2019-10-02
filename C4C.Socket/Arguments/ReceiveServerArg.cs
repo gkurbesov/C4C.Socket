@@ -4,7 +4,7 @@ using System.Text;
 
 namespace C4C.Sockets.Arguments
 {
-    public class ReceiveServerArg
+    public class ReceiveServerArgs: EventArgs
     {
         /// <summary>
         /// Клиент передавший информацию
@@ -27,14 +27,14 @@ namespace C4C.Sockets.Arguments
         /// </summary>
         private Encoding StringEcncoding { get; set; } = Encoding.UTF8;
 
-        internal ReceiveServerArg() { }
-        internal ReceiveServerArg(IntPtr id, byte[] message_byte, Encoding encoding)
+        internal ReceiveServerArgs() { }
+        internal ReceiveServerArgs(IntPtr id, byte[] message_byte, Encoding encoding)
         {
             ClientID = id;
             MessageBytes = message_byte;
             StringEcncoding = encoding;
         }
-        internal ReceiveServerArg(EndPoint point, byte[] message_byte, Encoding encoding)
+        internal ReceiveServerArgs(EndPoint point, byte[] message_byte, Encoding encoding)
         {
             ClientEndPoint = point;
             MessageBytes = message_byte;
