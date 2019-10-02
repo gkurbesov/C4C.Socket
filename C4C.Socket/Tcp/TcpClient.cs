@@ -13,23 +13,23 @@ namespace C4C.Sockets.Tcp
         /// <summary>
         /// Событие успешного подключения
         /// </summary>
-        public event ConnectionStatusHandler Connected;
+        public event EventHandler Connected;
         /// <summary>
         /// Событие об отключении сокета
         /// </summary>
-        public event ConnectionStatusHandler Disconnected;
+        public event EventHandler Disconnected;
         /// <summary>
         /// Событие ошибок сокета
         /// </summary>
-        public event ErrorClientHandler ClientErrors;
+        public event EventHandler<ErrorClientArgs> ClientErrors;
         /// <summary>
         /// Событие о получении новых данных
         /// </summary>
-        public event MessageClientHandler ReceiveMessage;
+        public event EventHandler<ReceiveClientArgs> ReceiveMessage;
         /// <summary>
         /// Событие о статусе отправки данных
         /// </summary>
-        public event SendDataClientHandler SendMessage;
+        public event EventHandler<SendClientArgs> SendMessage;
 
         /// <summary>
         /// Метка экземпляра класса
@@ -108,12 +108,12 @@ namespace C4C.Sockets.Tcp
 
         internal void CallConnected()
         {
-            Task.Factory.StartNew(() => Connected?.Invoke(this));
+            Task.Factory.StartNew(() => Connected?.Invoke(this, EventArgs.Empty));
         }
 
         internal void CallDisconnected()
         {
-            Task.Factory.StartNew(() => Disconnected?.Invoke(this));
+            Task.Factory.StartNew(() => Disconnected?.Invoke(this, EventArgs.Empty));
         }
         #endregion
 

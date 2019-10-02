@@ -1,4 +1,5 @@
-﻿using System;
+﻿using C4C.Sockets.Arguments;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -19,15 +20,15 @@ namespace C4C.Sockets.Udp
         /// <summary>
         /// События с отчетом об ошибках
         /// </summary>
-        public event ErrorServerHandler ServerErrors;
+        public event EventHandler<ErrorServerArgs> ServerErrors;
         /// <summary>
         /// Событие о получение новых данных
         /// </summary>
-        public event MessageServerHandler ReceiveMessage;
+        public event EventHandler<ReceiveServerArgs> ReceiveMessage;
         /// <summary>
         /// Отчет об отправки данных
         /// </summary>
-        public event SendDataServerHandler SendMessage;
+        public event EventHandler<SendServerArgs> SendMessage;
 
 
         /// <summary>
@@ -225,11 +226,13 @@ namespace C4C.Sockets.Udp
                 {
                     if (ServerSocket != null) ServerSocket.Dispose();
                     // создаем сокет
-                    ServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                    ServerSocket.ReceiveTimeout = TimeoutReceive;
-                    ServerSocket.SendTimeout = TimeoutSend;
-                    ServerSocket.ReceiveBufferSize = SizeBuffer;
-                    ServerSocket.SendBufferSize = SizeBuffer;
+                    ServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp)
+                    {
+                        ReceiveTimeout = TimeoutReceive,
+                        SendTimeout = TimeoutSend,
+                        ReceiveBufferSize = SizeBuffer,
+                        SendBufferSize = SizeBuffer
+                    };
                     EndPoint localEndPoint = new IPEndPoint(IPAddress.Any, Port);
                     ServerSocket.Bind(localEndPoint);
                     status = true;

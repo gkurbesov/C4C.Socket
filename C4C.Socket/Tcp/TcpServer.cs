@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
+using C4C.Sockets.Arguments;
 
 namespace C4C.Sockets.Tcp
 {
@@ -19,23 +20,23 @@ namespace C4C.Sockets.Tcp
         /// <summary>
         /// События с отчетом об ошибках
         /// </summary>
-        public event ErrorServerHandler ServerErrors;
+        public event EventHandler<ErrorServerArgs> ServerErrors;
         /// <summary>
         /// Событие о получение новых данных
         /// </summary>
-        public event MessageServerHandler ReceiveMessage;
+        public event EventHandler<ReceiveServerArgs> ReceiveMessage;
         /// <summary>
         /// Отчет об отправки данных
         /// </summary>
-        public event SendDataServerHandler SendMessage;
+        public event EventHandler<SendServerArgs> SendMessage;
         /// <summary>
         /// Событие о подключении нового клиента
         /// </summary>
-        public event ConnectionHandler ClientConnect;
+        public event EventHandler<ClientConnectionArgs> ClientConnect;
         /// <summary>
         /// Событие об отключении клиента
         /// </summary>
-        public event ConnectionHandler ClientDisconnect;
+        public event EventHandler<ClientConnectionArgs> ClientDisconnect;
 
         /// <summary>
         /// Прослушивающий сокет
@@ -313,11 +314,13 @@ namespace C4C.Sockets.Tcp
                 {
                     if (ServerSocket != null) ServerSocket.Dispose();
                     // создаем сокет
-                    ServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    ServerSocket.ReceiveTimeout = TimeoutReceive;
-                    ServerSocket.SendTimeout = TimeoutSend;
-                    ServerSocket.ReceiveBufferSize = SizeBuffer;
-                    ServerSocket.SendBufferSize = SizeBuffer;
+                    ServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+                    {
+                        ReceiveTimeout = TimeoutReceive,
+                        SendTimeout = TimeoutSend,
+                        ReceiveBufferSize = SizeBuffer,
+                        SendBufferSize = SizeBuffer
+                    };
                     //IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
                     //IPAddress ipAddress = (Dns.Resolve(.ToString())).AddressList[0];
                     IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, Port);
