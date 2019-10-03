@@ -16,7 +16,6 @@ namespace C4C.Sockets.Arguments
         /// Описание ошибки
         /// </summary>
         public string Message { get; } = string.Empty;
-
         internal ErrorClientArgs() { }
         internal ErrorClientArgs(ClientErrorType type, string message)
         {

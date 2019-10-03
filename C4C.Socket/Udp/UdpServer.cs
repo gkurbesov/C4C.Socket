@@ -12,7 +12,6 @@ namespace C4C.Sockets.Udp
 {
     public class UdpServer
     {
-
         /// <summary>
         /// Событие об изменении статуса сервера
         /// </summary>
@@ -29,8 +28,6 @@ namespace C4C.Sockets.Udp
         /// Отчет об отправки данных
         /// </summary>
         public event EventHandler<SendServerArgs> SendMessage;
-
-
         /// <summary>
         /// Прослушивающий сокет
         /// </summary>

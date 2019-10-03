@@ -25,7 +25,6 @@ namespace C4C.Sockets.Arguments
             ClientID = id;
             TotalBytes = size;
         }
-
         internal SendServerArgs(EndPoint point, int size)
         {
             ClientEndPoint = point;

@@ -26,7 +26,6 @@ namespace C4C.Sockets.Arguments
         /// Кодировка для представления текста
         /// </summary>
         private Encoding StringEcncoding { get; set; } = Encoding.UTF8;
-
         internal ReceiveServerArgs() { }
         internal ReceiveServerArgs(IntPtr id, byte[] message_byte, Encoding encoding)
         {

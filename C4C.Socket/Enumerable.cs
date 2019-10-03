@@ -46,23 +46,60 @@
         /// </summary>
         AcceptError
     }
-
+    /// <summary>
+    /// Типы ошибок клиентов
+    /// </summary>
     public enum ClientErrorType
     {
+        /// <summary>
+        /// Неизвестная ошибка
+        /// </summary>
         Other,
+        /// <summary>
+        /// Сокет уже подключен
+        /// </summary>
         SocketIsConnected,
+        /// <summary>
+        /// Сервер не отвечает
+        /// </summary>
         ServerIsNotAvailable,
+        /// <summary>
+        /// Ошибка создания сокета
+        /// </summary>
         InitSocketError,
+        /// <summary>
+        /// Сокет не подключен
+        /// </summary>
         SoccketIsNotConnected,
+        /// <summary>
+        /// Ошибка подключения
+        /// </summary>
         ConnectSocketError,
+        /// <summary>
+        /// Сокет был закрыт
+        /// </summary>
         CloseConnection,
+        /// <summary>
+        /// Ошибка во время отправки данных
+        /// </summary>
         SendDataError,
+        /// <summary>
+        /// Ошибка во время приема данных
+        /// </summary>
         ReceiveDataError
     }
-
+    /// <summary>
+    /// Статусы сервера
+    /// </summary>
     public enum ServerStatus
     {
+        /// <summary>
+        /// Сервер запущен
+        /// </summary>
         Start,
+        /// <summary>
+        /// Сервер остановлен
+        /// </summary>
         Stop
     }
 }

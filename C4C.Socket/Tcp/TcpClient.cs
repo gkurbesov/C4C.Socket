@@ -30,7 +30,6 @@ namespace C4C.Sockets.Tcp
         /// Событие о статусе отправки данных
         /// </summary>
         public event EventHandler<SendClientArgs> SendMessage;
-
         /// <summary>
         /// Метка экземпляра класса
         /// </summary>
