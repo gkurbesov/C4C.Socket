@@ -10,7 +10,7 @@ namespace C4C.Sockets.Value
         /// <summary>
         /// Указатель на сокет
         /// </summary>
-        public IntPtr SocketId { get; internal set; } = IntPtr.Zero;
+        public IntPtr SocketID { get; internal set; } = IntPtr.Zero;
         /// <summary>
         /// IP адрес удаленной точки
         /// </summary>

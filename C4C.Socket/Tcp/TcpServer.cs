@@ -135,7 +135,7 @@ namespace C4C.Sockets.Tcp
         /// <param name="port">Удаленный порт</param>
         private void CallConnected(ConnectionValue client)
         {
-            Task.Factory.StartNew(() => { ClientConnect?.Invoke(this, new Arguments.ClientConnectionArgs(client.SocketId, client.RemoteIP, client.RemotePort)); });
+            Task.Factory.StartNew(() => { ClientConnect?.Invoke(this, new Arguments.ClientConnectionArgs(client.SocketID, client.RemoteIP, client.RemotePort)); });
         }
         /// <summary>
         /// Вызов события об отключении
@@ -145,7 +145,7 @@ namespace C4C.Sockets.Tcp
         /// <param name="port">Удаленный порт</param>
         private void CallDisconnected(ConnectionValue client)
         {
-            Task.Factory.StartNew(() => { ClientDisconnect?.Invoke(this, new Arguments.ClientConnectionArgs(client.SocketId, client.RemoteIP, client.RemotePort)); });
+            Task.Factory.StartNew(() => { ClientDisconnect?.Invoke(this, new Arguments.ClientConnectionArgs(client.SocketID, client.RemoteIP, client.RemotePort)); });
         }
         /// <summary>
         /// Метод вызова события о приеме нового сообщения
@@ -251,7 +251,7 @@ namespace C4C.Sockets.Tcp
         /// <param name="data">массив байт для отправки</param>
         public void Send(IntPtr client_id, byte[] data)
         {
-            ConnectionValue client = Сonnections.Find(o => o.SocketId.Equals(client_id));
+            ConnectionValue client = Сonnections.Find(o => o.SocketID.Equals(client_id));
             if (client != null)
             {
                 try
@@ -284,7 +284,7 @@ namespace C4C.Sockets.Tcp
             try
             {
                 ConnectionValue client = null;
-                lock (Сonnections) client = Сonnections.Find(o => o.SocketId.Equals(client_id));
+                lock (Сonnections) client = Сonnections.Find(o => o.SocketID.Equals(client_id));
                 if (client != null)
                 {
                     CloseConnection(client);
@@ -365,7 +365,7 @@ namespace C4C.Sockets.Tcp
                     // Завершение операции Accept
                     Socket client_socket = (Socket)result.AsyncState;
                     connection.Socket = client_socket.EndAccept(result);
-                    connection.SocketId = connection.Socket.Handle;
+                    connection.SocketID = connection.Socket.Handle;
                     connection.Buffer = new byte[SizeBuffer];
                     connection.RemoteIP = ((IPEndPoint)connection.Socket.RemoteEndPoint).Address.ToString();
                     connection.RemotePort = ((IPEndPoint)connection.Socket.RemoteEndPoint).Port;
@@ -415,7 +415,7 @@ namespace C4C.Sockets.Tcp
                         if (connection.Socket.Available <= 0)
                         {
                             //Вызываем событие по окнчанию чтения данных от сокета
-                            CallReceive(connection.SocketId, connection.BufferBuilder.Data);
+                            CallReceive(connection.SocketID, connection.BufferBuilder.Data);
                             connection.BufferBuilder.Clear();
                         }
                         connection.Socket.BeginReceive(
@@ -456,7 +456,7 @@ namespace C4C.Sockets.Tcp
             {
                 // Отправка сообщения завершена
                 int send_size = connection.Socket.EndSend(result);
-                CallSendResult(connection.SocketId, send_size);
+                CallSendResult(connection.SocketID, send_size);
             }
             catch (SocketException exc)
             {
