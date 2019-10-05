@@ -177,7 +177,7 @@ namespace C4C.Sockets.Tcp
             Port = port;
             try
             {
-                if (SetupServerSocket() != false)
+                if (SetupServerSocket())
                 {
                     ServerSocket.BeginAccept(new AsyncCallback(AcceptCallback), ServerSocket);
                     IsListen = true;
@@ -210,7 +210,7 @@ namespace C4C.Sockets.Tcp
                     {
                         CallErrorServer(ServerErrorType.CloseConnection, ex.Message);
                     }
-                    if(ServerSocket!= null)
+                    if (ServerSocket != null)
                     {
                         ServerSocket.Close();
                         ServerSocket.Dispose();
@@ -232,8 +232,48 @@ namespace C4C.Sockets.Tcp
                 }
             }
             lock (Сonnections) Сonnections.Clear();
-            if(IsListen) CallStatus(ServerStatus.Stop);
+            if (IsListen) CallStatus(ServerStatus.Stop);
             IsListen = false;
+        }
+        /// <summary>
+        /// Отправка текста всем подключенным клиентам
+        /// </summary>
+        /// <param name="data">текст для отправки</param>
+        public void SendToAll(string data)
+        {
+            SendToAll(StringEcncoding.GetBytes(data));
+        }
+        /// <summary>
+        /// Отправка данных всем подключенным клиентам
+        /// </summary>
+        /// <param name="data">массив байт для отправки</param>
+        public void SendToAll(byte[] data)
+        {
+            foreach(var client in Сonnections.ToArray())
+            {
+                if(client != null && client.Socket != null)
+                {
+                    try
+                    {
+                        client.Socket.BeginSend(data, 0, data.Length, SocketFlags.None,
+                            new AsyncCallback(SendCallback), client);
+                    }
+                    catch (SocketException exc)
+                    {
+                        CloseConnection(client);
+                        CallErrorServer(ServerErrorType.SendDataError, exc.Message);
+                    }
+                    catch (Exception exc)
+                    {
+                        CloseConnection(client);
+                        CallErrorServer(ServerErrorType.SendDataError, exc.Message);
+                    }
+                }
+                else
+                {
+                    CloseConnection(client);
+                }
+            }
         }
         /// <summary>
         /// Отправка текста
@@ -251,7 +291,8 @@ namespace C4C.Sockets.Tcp
         /// <param name="data">массив байт для отправки</param>
         public void Send(IntPtr client_id, byte[] data)
         {
-            ConnectionValue client = Сonnections.Find(o => o.SocketID.Equals(client_id));
+            ConnectionValue client = null;
+            lock (Сonnections) client = Сonnections.Find(o => o.SocketID.Equals(client_id));
             if (client != null)
             {
                 try
@@ -485,7 +526,7 @@ namespace C4C.Sockets.Tcp
                 {
                     CallErrorServer(ServerErrorType.CloseConnection, ex.Message);
                 }
-                if(client!= null)
+                if (client != null)
                 {
                     client.Socket.Close();
                     client.Socket.Dispose();
