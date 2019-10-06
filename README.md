@@ -32,7 +32,7 @@ namespace ConsoleApp
 
             Console.WriteLine("Start socket server");
             
-            // Start listenin on tcp port 80
+            // Start listening on tcp port 80
             server.Start(80);
 
             Console.ReadLine();
