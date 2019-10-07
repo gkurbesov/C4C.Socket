@@ -8,7 +8,7 @@ using C4C.Sockets.Arguments;
 
 namespace C4C.Sockets.Tcp
 {
-    public class TcpClient 
+    public class TcpClient
     {
         /// <summary>
         /// Событие успешного подключения
@@ -46,10 +46,11 @@ namespace C4C.Sockets.Tcp
         /// Кодировка текстовых данных
         /// </summary>
         public Encoding StringEcncoding { get; internal set; } = Encoding.UTF8;
+        private volatile bool ConnectedStatus = false;
         /// <summary>
         /// Статус подключения
         /// </summary>
-        public bool ConnectedStatus { get; internal set; } = false;
+        public bool IsConnected { get { return ConnectedStatus; } }
         /// <summary>
         /// Сокет клиента
         /// </summary>
@@ -130,19 +131,19 @@ namespace C4C.Sockets.Tcp
                 {
                     try
                     {
-                        if (ClientSocket != null) ClientSocket.Dispose();
+                        if (ClientSocket != null)
+                        {
+                            ClientSocket.Dispose();
+                            ClientSocket = null;
+                        }
                     }
-                    catch {
-                        Debug.Print("error dispose");
-                    }
-
+                    catch { }
                     // Устанавливаем удаленную точку для сокета
                     IPHostEntry ipHostInfo = Dns.Resolve(server_host);
                     IPAddress ipAddress = ipHostInfo.AddressList[0];
                     IPEndPoint remoteEP = new IPEndPoint(ipAddress, server_port);
                     // Create a TCP/IP socket.
-                    ClientSocket = new Socket(AddressFamily.InterNetwork,
-                        SocketType.Stream, ProtocolType.Tcp)
+                    ClientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
                     {
                         ReceiveTimeout = TimeoutReceive,
                         SendTimeout = TimeoutSend
@@ -183,7 +184,7 @@ namespace C4C.Sockets.Tcp
                 try
                 {
                     ClientSocket.BeginSend(value, 0, value.Length, SocketFlags.None,
-                        new AsyncCallback(SendCallback), ClientSocket);
+                        new AsyncCallback(SendCallback), null);
                 }
                 catch (SocketException ex)
                 {
@@ -219,15 +220,12 @@ namespace C4C.Sockets.Tcp
                         CallErrorClient(ClientErrorType.CloseConnection, "Error in Shutdown - " + ex.Message);
                     }
                 }
-                if(ClientSocket != null)
-                {
-                    ClientSocket.Close();
-                    ClientSocket.Dispose();
-                }
+                ClientSocket.Close();
+                ClientSocket.Dispose();
                 ClientSocket = null;
             }
-            if (ConnectedStatus) CallDisconnected();
             ConnectedStatus = false;
+            if (ConnectedStatus) CallDisconnected();
 
         }
         #endregion        
@@ -240,15 +238,13 @@ namespace C4C.Sockets.Tcp
         {
             try
             {
-                //Socket client = (Socket)result.AsyncState;
                 ClientSocket.EndConnect(result);
-                //ClientSocket = client;
                 Buffer = new byte[SizeBuffer];
                 ConnectedStatus = true;
                 CallConnected();
                 // Начинаем принимать сообщения
                 ClientSocket.BeginReceive(Buffer, 0, Buffer.Length, SocketFlags.None,
-                    new AsyncCallback(ReceiveCallback), ClientSocket);
+                    new AsyncCallback(ReceiveCallback), null);
             }
             catch (SocketException ex)
             {
@@ -267,7 +263,6 @@ namespace C4C.Sockets.Tcp
         /// <param name="result"></param>
         private void ReceiveCallback(IAsyncResult result)
         {
-            //Socket client = (Socket)result.AsyncState;
             try
             {
                 if (ClientSocket != null && ClientSocket.Connected)
@@ -286,7 +281,7 @@ namespace C4C.Sockets.Tcp
                             Buffer, 0,
                             Buffer.Length, SocketFlags.None,
                             new AsyncCallback(ReceiveCallback),
-                            ClientSocket);
+                            null);
                     }
                     else
                     {
@@ -318,7 +313,7 @@ namespace C4C.Sockets.Tcp
             //Socket connection = (Socket)result.AsyncState;
             try
             {
-                if(ClientSocket != null)
+                if (ClientSocket != null)
                 {
                     // Отправка сообщения завершена
                     int bytesSent = ClientSocket.EndSend(result);
@@ -336,6 +331,6 @@ namespace C4C.Sockets.Tcp
                 Disconnect();
             }
         }
-       
+
     }
 }
