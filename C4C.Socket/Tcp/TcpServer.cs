@@ -83,10 +83,11 @@ namespace C4C.Sockets.Tcp
         /// Количество подключенных клиентов
         /// </summary>
         public int ClientCount { get { return Сonnections.Count; } }
+        private volatile bool IsListeningStatus = false;
         /// <summary>
         /// Статус прослушивания порта
         /// </summary>
-        public bool IsListen { get; private set; } = false;
+        public bool IsListen { get { return IsListeningStatus; } }
 
         #region конструкторы
         /// <summary>
@@ -180,7 +181,7 @@ namespace C4C.Sockets.Tcp
                 if (SetupServerSocket())
                 {
                     ServerSocket.BeginAccept(new AsyncCallback(AcceptCallback), ServerSocket);
-                    IsListen = true;
+                    IsListeningStatus = true;
                     CallStatus(ServerStatus.Start);
                 }
                 else
@@ -215,25 +216,23 @@ namespace C4C.Sockets.Tcp
                         ServerSocket.Close();
                         ServerSocket.Dispose();
                     }
-                    if (Сonnections.Count > 0)
+                    ServerSocket = null;
+                    foreach (var client in Сonnections.ToArray())
                     {
-                        foreach (var client in Сonnections.ToArray())
+                        try
                         {
-                            try
-                            {
-                                CloseConnection(client);
-                            }
-                            catch (Exception ex)
-                            {
-                                CallErrorServer(ServerErrorType.CloseConnection, ex.Message);
-                            }
+                            CloseConnection(client);
+                        }
+                        catch (Exception ex)
+                        {
+                            CallErrorServer(ServerErrorType.CloseConnection, ex.Message);
                         }
                     }
                 }
             }
             lock (Сonnections) Сonnections.Clear();
-            if (IsListen) CallStatus(ServerStatus.Stop);
-            IsListen = false;
+            if (IsListeningStatus) CallStatus(ServerStatus.Stop);
+            IsListeningStatus = false;
         }
         /// <summary>
         /// Отправка текста всем подключенным клиентам
@@ -249,9 +248,9 @@ namespace C4C.Sockets.Tcp
         /// <param name="data">массив байт для отправки</param>
         public void SendToAll(byte[] data)
         {
-            foreach(var client in Сonnections.ToArray())
+            foreach (var client in Сonnections.ToArray())
             {
-                if(client != null && client.Socket != null)
+                if (client != null && client.Socket != null)
                 {
                     try
                     {
@@ -260,13 +259,13 @@ namespace C4C.Sockets.Tcp
                     }
                     catch (SocketException exc)
                     {
-                        CloseConnection(client);
                         CallErrorServer(ServerErrorType.SendDataError, exc.Message);
+                        CloseConnection(client);
                     }
                     catch (Exception exc)
                     {
-                        CloseConnection(client);
                         CallErrorServer(ServerErrorType.SendDataError, exc.Message);
+                        CloseConnection(client);
                     }
                 }
                 else
@@ -302,13 +301,13 @@ namespace C4C.Sockets.Tcp
                 }
                 catch (SocketException exc)
                 {
-                    CloseConnection(client);
                     CallErrorServer(ServerErrorType.SendDataError, exc.Message);
+                    CloseConnection(client);
                 }
                 catch (Exception exc)
                 {
-                    CloseConnection(client);
                     CallErrorServer(ServerErrorType.SendDataError, exc.Message);
+                    CloseConnection(client);
                 }
             }
             else
@@ -324,7 +323,7 @@ namespace C4C.Sockets.Tcp
         {
             try
             {
-                ConnectionValue client = null;
+                ConnectionValue client;
                 lock (Сonnections) client = Сonnections.Find(o => o.SocketID.Equals(client_id));
                 if (client != null)
                 {
@@ -351,9 +350,13 @@ namespace C4C.Sockets.Tcp
             bool status = false;
             try
             {
-                if (IsListen != true)
+                if (IsListeningStatus != true)
                 {
-                    if (ServerSocket != null) ServerSocket.Dispose();
+                    if (ServerSocket != null)
+                    {
+                        ServerSocket.Dispose();
+                        ServerSocket = null;
+                    }
                     // создаем сокет
                     ServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
                     {
@@ -362,13 +365,9 @@ namespace C4C.Sockets.Tcp
                         ReceiveBufferSize = SizeBuffer,
                         SendBufferSize = SizeBuffer
                     };
-                    //IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-                    //IPAddress ipAddress = (Dns.Resolve(.ToString())).AddressList[0];
                     IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, Port);
-
                     // Create a TCP/IP socket.  
                     ServerSocket.Bind(localEndPoint);
-
                     // начинаем слушать порт
                     ServerSocket.Listen((int)SocketOptionName.MaxConnections);
                     status = true;
@@ -398,20 +397,18 @@ namespace C4C.Sockets.Tcp
         /// <param name="result"></param>
         private void AcceptCallback(IAsyncResult result)
         {
-            if (IsListen != false)
+            if (IsListeningStatus != false)
             {
                 ConnectionValue connection = new ConnectionValue();
                 try
                 {
                     // Завершение операции Accept
-                    Socket client_socket = (Socket)result.AsyncState;
-                    connection.Socket = client_socket.EndAccept(result);
+                    connection.Socket = ServerSocket.EndAccept(result);
                     connection.SocketID = connection.Socket.Handle;
                     connection.Buffer = new byte[SizeBuffer];
                     connection.RemoteIP = ((IPEndPoint)connection.Socket.RemoteEndPoint).Address.ToString();
                     connection.RemotePort = ((IPEndPoint)connection.Socket.RemoteEndPoint).Port;
                     lock (Сonnections) Сonnections.Add(connection);
-
                     // Начало операции Receive и новой операции Accept
                     connection.Socket.BeginReceive(connection.Buffer,
                         0, connection.Buffer.Length, SocketFlags.None,
@@ -433,10 +430,9 @@ namespace C4C.Sockets.Tcp
                 finally
                 {
                     ServerSocket.BeginAccept(new AsyncCallback(
-                        AcceptCallback), result.AsyncState);
+                        AcceptCallback), null);
                 }
             }
-
         }
         /// <summary>
         ///  Метод асинхронного получения сообщений
@@ -501,13 +497,13 @@ namespace C4C.Sockets.Tcp
             }
             catch (SocketException exc)
             {
-                CloseConnection(connection);
                 CallErrorServer(Sockets.ServerErrorType.SendDataError, exc.Message);
+                CloseConnection(connection);
             }
             catch (Exception exc)
             {
-                CloseConnection(connection);
                 CallErrorServer(Sockets.ServerErrorType.SendDataError, exc.Message);
+                CloseConnection(connection);
             }
         }
         /// <summary>
@@ -520,17 +516,14 @@ namespace C4C.Sockets.Tcp
             {
                 try
                 {
-                    client.Socket.Shutdown(SocketShutdown.Both);
+                    if (client.Socket.Connected) client.Socket.Shutdown(SocketShutdown.Both);
                 }
                 catch (Exception ex)
                 {
                     CallErrorServer(ServerErrorType.CloseConnection, ex.Message);
                 }
-                if (client != null)
-                {
-                    client.Socket.Close();
-                    client.Socket.Dispose();
-                }
+                client.Socket.Close();
+                client.Socket.Dispose();
                 lock (Сonnections) Сonnections.Remove(client);
                 CallDisconnected(client);
             }
