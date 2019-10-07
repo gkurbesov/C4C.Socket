@@ -56,10 +56,11 @@ namespace C4C.Sockets.Udp
         /// Кодировка для текстовых данных
         /// </summary>
         public Encoding StringEcncoding { get; private set; } = Encoding.UTF8;
+        private volatile bool IsListeningStatus = false;
         /// <summary>
         /// Статус прослушивания порта
         /// </summary>
-        public bool IsListen { get; private set; } = false;
+        public bool IsListen { get { return IsListeningStatus; } }
         private byte[] Buffer { get; set; } = new byte[0];
 
         #region конструкторы
@@ -132,11 +133,11 @@ namespace C4C.Sockets.Udp
             Port = port;
             try
             {
-                if (SetupServerSocket() != false)
+                if (SetupServerSocket())
                 {
                     EndPoint localEndPoint = new IPEndPoint(IPAddress.Any, Port);
                     Buffer = new byte[SizeBuffer];
-                    IsListen = true;
+                    IsListeningStatus = true;
                     CallStatus(ServerStatus.Start);
                     ServerSocket.BeginReceiveFrom(Buffer, 0, Buffer.Length, SocketFlags.None, ref localEndPoint, new AsyncCallback(ReceiveCallback), localEndPoint);
                 }
@@ -167,16 +168,13 @@ namespace C4C.Sockets.Udp
                     {
                         CallErrorServer(ServerErrorType.CloseConnection, ex.Message);
                     }
+                    ServerSocket.Close();
+                    ServerSocket.Dispose();
+                    ServerSocket = null;
                 }
             }
-            if(ServerSocket != null)
-            {
-                ServerSocket.Close();
-                ServerSocket.Dispose();
-                ServerSocket = null;
-            }
-            if(IsListen) CallStatus(ServerStatus.Stop);
-            IsListen = false;
+            if (IsListeningStatus) CallStatus(ServerStatus.Stop);
+            IsListeningStatus = false;
         }
         /// <summary>
         /// Отправка текста
@@ -196,8 +194,11 @@ namespace C4C.Sockets.Udp
         {
             try
             {
-                ServerSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, client_point,
-                    new AsyncCallback(SendCallback), client_point);
+                if (ServerSocket != null && IsListeningStatus)
+                {
+                    ServerSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, client_point,
+                        new AsyncCallback(SendCallback), client_point);
+                }
             }
             catch (SocketException exc)
             {
@@ -219,9 +220,16 @@ namespace C4C.Sockets.Udp
             bool status = false;
             try
             {
-                if (IsListen != true)
+                if (IsListeningStatus != true)
                 {
-                    if (ServerSocket != null) ServerSocket.Dispose();
+                    lock (ServerSocket)
+                    {
+                        if (ServerSocket != null)
+                        {
+                            ServerSocket.Dispose();
+                            ServerSocket = null;
+                        }
+                    }
                     // создаем сокет
                     ServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp)
                     {
@@ -259,7 +267,7 @@ namespace C4C.Sockets.Udp
         /// <param name="result"></param>
         private void ReceiveCallback(IAsyncResult result)
         {
-            if (ServerSocket != null && IsListen)
+            if (ServerSocket != null && IsListeningStatus)
             {
                 try
                 {
