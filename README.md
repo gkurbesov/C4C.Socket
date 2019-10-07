@@ -1,5 +1,6 @@
 # C4C.Socket
 Библиотека для облегчения работы с System.Net.Sockets
+
 Библиотека использует событийно-ориентированную модель, а сама работа с сокетом внутри библиотеки происходит в асинхронном режиме.
 
 
@@ -31,7 +32,7 @@ namespace ConsoleApp
 
             Console.WriteLine("Start socket server");
             
-            // Start listenin on tcp port 80
+            // Start listening on tcp port 80
             server.Start(80);
 
             Console.ReadLine();
