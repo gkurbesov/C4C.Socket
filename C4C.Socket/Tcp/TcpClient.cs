@@ -224,8 +224,8 @@ namespace C4C.Sockets.Tcp
                 ClientSocket.Dispose();
                 ClientSocket = null;
             }
+            if (ConnectedStatus) CallDisconnected();            
             ConnectedStatus = false;
-            if (ConnectedStatus) CallDisconnected();
 
         }
         #endregion        
