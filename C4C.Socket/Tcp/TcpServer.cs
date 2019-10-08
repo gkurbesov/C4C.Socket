@@ -429,8 +429,15 @@ namespace C4C.Sockets.Tcp
                 }
                 finally
                 {
-                    if (ServerSocket != null)
-                        ServerSocket.BeginAccept(new AsyncCallback(AcceptCallback), null);
+                    try
+                    {
+                        if (ServerSocket != null && ServerSocket.IsBound)
+                            ServerSocket.BeginAccept(new AsyncCallback(AcceptCallback), null);
+                    }
+                    catch(Exception ex)
+                    {
+                        CallErrorServer(Sockets.ServerErrorType.AcceptError, ex.Message + ex.ToString());
+                    }
                 }
             }
         }
