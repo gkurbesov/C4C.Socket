@@ -224,7 +224,7 @@ namespace C4C.Sockets.Tcp
                 ClientSocket.Dispose();
                 ClientSocket = null;
             }
-            if (ConnectedStatus) CallDisconnected();
+            if (ConnectedStatus) CallDisconnected();            
             ConnectedStatus = false;
 
         }
