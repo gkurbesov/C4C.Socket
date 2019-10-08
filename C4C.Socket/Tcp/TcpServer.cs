@@ -429,8 +429,8 @@ namespace C4C.Sockets.Tcp
                 }
                 finally
                 {
-                    ServerSocket.BeginAccept(new AsyncCallback(
-                        AcceptCallback), null);
+                    if (ServerSocket != null)
+                        ServerSocket.BeginAccept(new AsyncCallback(AcceptCallback), null);
                 }
             }
         }
