@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -67,7 +66,7 @@ namespace C4C.Sockets.Tcp
         /// Буфер полученных данных
         /// </summary>
         internal BufferCollector BufferBuilder { get; set; } = new BufferCollector();
-
+        private object locker = new object();
         #region конструкторы
         public TcpClient() { }
         public TcpClient(Encoding encoding, int buffre_size = 1024, int receive_timeout = 500, int send_timeout = 500)
@@ -125,44 +124,47 @@ namespace C4C.Sockets.Tcp
         /// <param name="server_port">порт для подключения</param>
         public void Connect(string server_host, int server_port)
         {
-            if (!ConnectedStatus)
+            lock (locker)
             {
-                try
+                if (!ConnectedStatus)
                 {
                     try
                     {
-                        if (ClientSocket != null)
+                        try
                         {
-                            ClientSocket.Dispose();
-                            ClientSocket = null;
+                            if (ClientSocket != null)
+                            {                                
+                                ClientSocket.Dispose();
+                                ClientSocket = null;
+                            }
                         }
+                        catch { }
+                        // Устанавливаем удаленную точку для сокета
+                        IPHostEntry ipHostInfo = Dns.Resolve(server_host);
+                        IPAddress ipAddress = ipHostInfo.AddressList[0];
+                        IPEndPoint remoteEP = new IPEndPoint(ipAddress, server_port);
+                        // Create a TCP/IP socket.
+                        ClientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+                        {
+                            ReceiveTimeout = TimeoutReceive,
+                            SendTimeout = TimeoutSend
+                        };
+                        // Connect to the remote endpoint.
+                        ClientSocket.BeginConnect(remoteEP, new AsyncCallback(ConnectCallback), null);
                     }
-                    catch { }
-                    // Устанавливаем удаленную точку для сокета
-                    IPHostEntry ipHostInfo = Dns.Resolve(server_host);
-                    IPAddress ipAddress = ipHostInfo.AddressList[0];
-                    IPEndPoint remoteEP = new IPEndPoint(ipAddress, server_port);
-                    // Create a TCP/IP socket.
-                    ClientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+                    catch (SocketException ex)
                     {
-                        ReceiveTimeout = TimeoutReceive,
-                        SendTimeout = TimeoutSend
-                    };
-                    // Connect to the remote endpoint.
-                    ClientSocket.BeginConnect(remoteEP, new AsyncCallback(ConnectCallback), null);
+                        CallErrorClient(ClientErrorType.InitSocketError, ex.Message);
+                    }
+                    catch (Exception ex)
+                    {
+                        CallErrorClient(ClientErrorType.ConnectSocketError, ex.Message);
+                    }
                 }
-                catch (SocketException ex)
+                else
                 {
-                    CallErrorClient(ClientErrorType.InitSocketError, ex.Message);
+                    CallErrorClient(ClientErrorType.SocketIsConnected, "For a new connection, you must break the old");
                 }
-                catch (Exception ex)
-                {
-                    CallErrorClient(ClientErrorType.ConnectSocketError, ex.Message);
-                }
-            }
-            else
-            {
-                CallErrorClient(ClientErrorType.SocketIsConnected, "For a new connection, you must break the old");
             }
         }
         /// <summary>
@@ -183,7 +185,7 @@ namespace C4C.Sockets.Tcp
             {
                 try
                 {
-                    ClientSocket.BeginSend(value, 0, value.Length, SocketFlags.None,
+                    ClientSocket?.BeginSend(value, 0, value.Length, SocketFlags.None,
                         new AsyncCallback(SendCallback), null);
                 }
                 catch (SocketException ex)
@@ -207,9 +209,9 @@ namespace C4C.Sockets.Tcp
         /// </summary>
         public void Disconnect()
         {
-            if (ClientSocket != null)
+            lock (locker)
             {
-                lock (ClientSocket)
+                if (ClientSocket != null)
                 {
                     try
                     {
@@ -219,13 +221,16 @@ namespace C4C.Sockets.Tcp
                     {
                         CallErrorClient(ClientErrorType.CloseConnection, "Error in Shutdown - " + ex.Message);
                     }
+                    ClientSocket.Close();
+                    ClientSocket.Dispose();
+                    ClientSocket = null;
                 }
-                ClientSocket.Close();
-                ClientSocket.Dispose();
-                ClientSocket = null;
+                if (ConnectedStatus)
+                {
+                    ConnectedStatus = false;
+                    CallDisconnected();
+                }
             }
-            ConnectedStatus = false;
-
         }
         #endregion        
 
@@ -276,11 +281,7 @@ namespace C4C.Sockets.Tcp
                             CallReceive(BufferBuilder.Data);
                             BufferBuilder.Clear();
                         }
-                        ClientSocket.BeginReceive(
-                            Buffer, 0,
-                            Buffer.Length, SocketFlags.None,
-                            new AsyncCallback(ReceiveCallback),
-                            null);
+                        ClientSocket.BeginReceive(Buffer, 0, Buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
                     }
                     else
                     {
@@ -309,10 +310,9 @@ namespace C4C.Sockets.Tcp
         /// <param name="result"></param>
         private void SendCallback(IAsyncResult result)
         {
-            //Socket connection = (Socket)result.AsyncState;
             try
             {
-                if (ClientSocket != null)
+                if (ClientSocket != null && ClientSocket.Connected)
                 {
                     // Отправка сообщения завершена
                     int bytesSent = ClientSocket.EndSend(result);
@@ -330,6 +330,5 @@ namespace C4C.Sockets.Tcp
                 Disconnect();
             }
         }
-
     }
 }
