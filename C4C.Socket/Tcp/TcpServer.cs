@@ -1,4 +1,3 @@
-﻿using C4C.Sockets.Value;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -7,6 +6,7 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using C4C.Sockets.Arguments;
+using C4C.Sockets.Value;
 
 namespace C4C.Sockets.Tcp
 {
@@ -88,7 +88,7 @@ namespace C4C.Sockets.Tcp
         /// Статус прослушивания порта
         /// </summary>
         public bool IsListen { get { return IsListeningStatus; } }
-
+        private object locker = new object();
         #region конструкторы
         /// <summary>
         /// Конструктор класса сервера
@@ -175,23 +175,26 @@ namespace C4C.Sockets.Tcp
         /// <param name="port">порт сервера для прослушивания</param>
         public void Start(int port)
         {
-            Port = port;
-            try
+            lock (locker)
             {
-                if (SetupServerSocket())
+                Port = port;
+                try
                 {
-                    ServerSocket.BeginAccept(new AsyncCallback(AcceptCallback), ServerSocket);
-                    IsListeningStatus = true;
-                    CallStatus(ServerStatus.Start);
+                    if (SetupServerSocket())
+                    {
+                        ServerSocket.BeginAccept(new AsyncCallback(AcceptCallback), ServerSocket);
+                        IsListeningStatus = true;
+                        CallStatus(ServerStatus.Start);
+                    }
+                    else
+                    {
+                        CallErrorServer(ServerErrorType.StartListenError, "Failed to create socket");
+                    }
                 }
-                else
+                catch (Exception exс)
                 {
-                    CallErrorServer(ServerErrorType.StartListenError, "Failed to create socket");
+                    CallErrorServer(ServerErrorType.StartListenError, exс.Message);
                 }
-            }
-            catch (Exception exс)
-            {
-                CallErrorServer(ServerErrorType.StartListenError, exс.Message);
             }
         }
         /// <summary>
@@ -199,18 +202,10 @@ namespace C4C.Sockets.Tcp
         /// </summary>
         public void Stop()
         {
-            if (ServerSocket != null)
+            lock (locker)
             {
-                lock (ServerSocket)
+                if (ServerSocket != null)
                 {
-                    try
-                    {
-                        ServerSocket.Shutdown(SocketShutdown.Both);
-                    }
-                    catch (Exception ex)
-                    {
-                        CallErrorServer(ServerErrorType.CloseConnection, ex.Message);
-                    }
                     if (ServerSocket != null)
                     {
                         ServerSocket.Close();
@@ -229,10 +224,13 @@ namespace C4C.Sockets.Tcp
                         }
                     }
                 }
+                lock (Сonnections) Сonnections.Clear();
+                if (IsListeningStatus)
+                {
+                    IsListeningStatus = false;
+                    CallStatus(ServerStatus.Stop);
+                }
             }
-            lock (Сonnections) Сonnections.Clear();
-            if (IsListeningStatus) CallStatus(ServerStatus.Stop);
-            IsListeningStatus = false;
         }
         /// <summary>
         /// Отправка текста всем подключенным клиентам
@@ -350,7 +348,7 @@ namespace C4C.Sockets.Tcp
             bool status = false;
             try
             {
-                if (IsListeningStatus != true)
+                if (!IsListeningStatus)
                 {
                     if (ServerSocket != null)
                     {
@@ -397,46 +395,49 @@ namespace C4C.Sockets.Tcp
         /// <param name="result"></param>
         private void AcceptCallback(IAsyncResult result)
         {
-            if (IsListeningStatus != false)
+            lock (locker)
             {
-                ConnectionValue connection = new ConnectionValue();
-                try
+                if (IsListeningStatus != false)
                 {
-                    // Завершение операции Accept
-                    connection.Socket = ServerSocket.EndAccept(result);
-                    connection.SocketID = connection.Socket.Handle;
-                    connection.Buffer = new byte[SizeBuffer];
-                    connection.RemoteIP = ((IPEndPoint)connection.Socket.RemoteEndPoint).Address.ToString();
-                    connection.RemotePort = ((IPEndPoint)connection.Socket.RemoteEndPoint).Port;
-                    lock (Сonnections) Сonnections.Add(connection);
-                    // Начало операции Receive и новой операции Accept
-                    connection.Socket.BeginReceive(connection.Buffer,
-                        0, connection.Buffer.Length, SocketFlags.None,
-                        new AsyncCallback(ReceiveCallback),
-                        connection);
-                    //Сообщаем о новом подключении                    
-                    CallConnected(connection);
-                }
-                catch (SocketException exc)
-                {
-                    CallErrorServer(Sockets.ServerErrorType.AcceptError, exc.Message + exc.ToString());
-                    CloseConnection(connection);
-                }
-                catch (Exception exc)
-                {
-                    CallErrorServer(Sockets.ServerErrorType.AcceptError, exc.Message + exc.ToString());
-                    CloseConnection(connection);
-                }
-                finally
-                {
+                    ConnectionValue connection = new ConnectionValue();
                     try
                     {
-                        if (ServerSocket != null && ServerSocket.IsBound)
-                            ServerSocket.BeginAccept(new AsyncCallback(AcceptCallback), null);
+                        // Завершение операции Accept
+                        connection.Socket = ServerSocket.EndAccept(result);
+                        connection.SocketID = connection.Socket.Handle;
+                        connection.Buffer = new byte[SizeBuffer];
+                        connection.RemoteIP = ((IPEndPoint)connection.Socket.RemoteEndPoint).Address.ToString();
+                        connection.RemotePort = ((IPEndPoint)connection.Socket.RemoteEndPoint).Port;
+                        lock (Сonnections) Сonnections.Add(connection);
+                        // Начало операции Receive и новой операции Accept
+                        connection.Socket.BeginReceive(connection.Buffer,
+                            0, connection.Buffer.Length, SocketFlags.None,
+                            new AsyncCallback(ReceiveCallback),
+                            connection);
+                        //Сообщаем о новом подключении                    
+                        CallConnected(connection);
                     }
-                    catch(Exception ex)
+                    catch (SocketException exc)
                     {
-                        CallErrorServer(Sockets.ServerErrorType.AcceptError, ex.Message + ex.ToString());
+                        CallErrorServer(Sockets.ServerErrorType.AcceptError, exc.Message + exc.ToString());
+                        CloseConnection(connection);
+                    }
+                    catch (Exception exc)
+                    {
+                        CallErrorServer(Sockets.ServerErrorType.AcceptError, exc.Message + exc.ToString());
+                        CloseConnection(connection);
+                    }
+                    finally
+                    {
+                        try
+                        {
+                            if (ServerSocket != null && ServerSocket.IsBound)
+                                ServerSocket?.BeginAccept(new AsyncCallback(AcceptCallback), null);
+                        }
+                        catch (Exception ex)
+                        {
+                            CallErrorServer(Sockets.ServerErrorType.AcceptError, ex.Message + ex.ToString());
+                        }
                     }
                 }
             }
@@ -450,7 +451,7 @@ namespace C4C.Sockets.Tcp
             ConnectionValue connection = (ConnectionValue)result.AsyncState;
             try
             {
-                if (connection.Socket.Connected)
+                if (connection.Socket != null && connection.Socket.Connected)
                 {
                     int read_size = connection.Socket.EndReceive(result);
                     if (read_size > 0)
@@ -462,8 +463,7 @@ namespace C4C.Sockets.Tcp
                             CallReceive(connection.SocketID, connection.BufferBuilder.Data);
                             connection.BufferBuilder.Clear();
                         }
-                        connection.Socket.BeginReceive(
-                            connection.Buffer, 0,
+                        connection.Socket.BeginReceive(connection.Buffer, 0,
                             connection.Buffer.Length, SocketFlags.None,
                             new AsyncCallback(ReceiveCallback),
                             connection);
@@ -498,18 +498,25 @@ namespace C4C.Sockets.Tcp
             ConnectionValue connection = (ConnectionValue)result.AsyncState;
             try
             {
-                // Отправка сообщения завершена
-                int send_size = connection.Socket.EndSend(result);
-                CallSendResult(connection.SocketID, send_size);
+                if(connection.Socket != null && connection.Socket.Connected)
+                {
+                    // Отправка сообщения завершена
+                    int send_size = connection.Socket.EndSend(result);
+                    CallSendResult(connection.SocketID, send_size);
+                }
+                else
+                {
+                    CloseConnection(connection);
+                }
             }
             catch (SocketException exc)
             {
-                CallErrorServer(Sockets.ServerErrorType.SendDataError, exc.Message);
+                CallErrorServer(ServerErrorType.SendDataError, exc.Message);
                 CloseConnection(connection);
             }
             catch (Exception exc)
             {
-                CallErrorServer(Sockets.ServerErrorType.SendDataError, exc.Message);
+                CallErrorServer(ServerErrorType.SendDataError, exc.Message);
                 CloseConnection(connection);
             }
         }
@@ -519,26 +526,26 @@ namespace C4C.Sockets.Tcp
         /// <param name="client">Экземпляр данных о клиенте</param>
         private void CloseConnection(ConnectionValue client)
         {
-            if (client != null && client.Socket != null)
-            {
-                try
-                {
-                    if (client.Socket.Connected) client.Socket.Shutdown(SocketShutdown.Both);
-                }
-                catch (Exception ex)
-                {
-                    CallErrorServer(ServerErrorType.CloseConnection, ex.Message);
-                }
-                client.Socket.Close();
-                client.Socket.Dispose();
-                lock (Сonnections) Сonnections.Remove(client);
-                CallDisconnected(client);
-            }
-            else if (client != null && client.Socket == null)
+            if(client != null)
             {
                 lock (Сonnections) Сonnections.Remove(client);
+                if (client.Socket != null)
+                {
+                    try
+                    {
+                        if (client.Socket.Connected)
+                            client.Socket.Shutdown(SocketShutdown.Both);
+                    }
+                    catch (Exception ex)
+                    {
+                        CallErrorServer(ServerErrorType.CloseConnection, ex.Message);
+                    }
+                    client.Socket?.Close();
+                    client.Socket?.Dispose();
+                    client.Socket = null;
+                    CallDisconnected(client);
+                }
             }
-
         }
     }
 }
