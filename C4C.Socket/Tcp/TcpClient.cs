@@ -216,12 +216,12 @@ namespace C4C.Sockets.Tcp
                     try
                     {
                         ClientSocket.Shutdown(SocketShutdown.Both);
+                        ClientSocket.Disconnect(false);
                     }
                     catch (Exception ex)
                     {
                         CallErrorClient(ClientErrorType.CloseConnection, "Error in Shutdown - " + ex.Message);
                     }
-                    ClientSocket.Close();
                     ClientSocket.Dispose();
                     ClientSocket = null;
                 }
