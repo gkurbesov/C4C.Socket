@@ -215,13 +215,15 @@ namespace C4C.Sockets.Tcp
                 {
                     try
                     {
+                        LingerOption lingerOption = new LingerOption(true, 1);
+                        ClientSocket.LingerState = lingerOption;
                         ClientSocket.Shutdown(SocketShutdown.Both);
-                        ClientSocket.Disconnect(false);
                     }
                     catch (Exception ex)
                     {
                         CallErrorClient(ClientErrorType.CloseConnection, "Error in Shutdown - " + ex.Message);
                     }
+                    ClientSocket.Close();
                     ClientSocket.Dispose();
                     ClientSocket = null;
                 }
