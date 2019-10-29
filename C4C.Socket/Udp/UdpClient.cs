@@ -69,6 +69,7 @@ namespace C4C.Sockets.Udp
         /// </summary>
         internal BufferCollector BufferBuilder { get; set; } = new BufferCollector();
         internal EndPoint ServerEndPoint = null;
+        private object locker = new object();
 
 
         #region конструкторы
@@ -130,63 +131,65 @@ namespace C4C.Sockets.Udp
         /// <param name="server_port">порт для подключения</param>
         public void Connect(string server_host, int server_port)
         {
-            if (!ConnectedStatus)
+            lock(locker)
             {
-                try
+                if (!ConnectedStatus)
                 {
-                    if (ClientSocket != null) ClientSocket.Dispose();
-                    // Устанавливаем удаленную точку для сокета
+                    try
+                    {
+                        if (ClientSocket != null)
+                        {
+                            ClientSocket.Dispose();
+                            ClientSocket = null;
+                        }
+                        IPAddress[] server_host_list = Dns.GetHostAddresses(server_host);
+                        IPAddress ip_adress = Array.Find(server_host_list, o => o.AddressFamily == AddressFamily.InterNetwork);
+                        IPEndPoint remote_end_point = new IPEndPoint(ip_adress, server_port);
+                        ClientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp)
+                        {
+                            ReceiveTimeout = TimeoutReceive,
+                            SendTimeout = TimeoutSend
+                        };
+                        Task.Factory.StartNew(() =>
+                        {
+                            try
+                            {
+                                ClientSocket.Connect(remote_end_point);
+                                ServerEndPoint = ClientSocket.RemoteEndPoint;
+                                Buffer = new byte[SizeBuffer];
+                                ConnectedStatus = true;
+                                CallConnected();
+                                ClientSocket.BeginReceiveFrom(Buffer, 0, Buffer.Length, SocketFlags.None,
+                                    ref ServerEndPoint, new AsyncCallback(ReceiveCallback), null);
+                            }
+                            catch (SocketException ex)
+                            {
+                                CallErrorClient(ClientErrorType.ServerIsNotAvailable, ex.Message + ex.StackTrace);                                
+                                Disconnect();
+                            }
+                            catch (Exception ex)
+                            {
+                                CallErrorClient(ClientErrorType.ConnectSocketError, ex.Message);
+                                Disconnect();
+                            }
+                        });
+                    }
+                    catch (SocketException ex)
+                    {
+                        CallErrorClient(ClientErrorType.ServerIsNotAvailable, ex.Message + ex.StackTrace);
+                        Disconnect();
+                    }
+                    catch (Exception ex)
+                    {
+                        CallErrorClient(ClientErrorType.ConnectSocketError, ex.Message);
+                        Disconnect();
+                    }
+                }
+                else
+                {
+                    CallErrorClient(ClientErrorType.SocketIsConnected, "For a new connection, you must break the old");
+                }
 
-                    IPHostEntry ip_host_info = Dns.Resolve(server_host);
-                    IPAddress ip_adress = ip_host_info.AddressList[0];
-                    IPEndPoint remote_end_point = new IPEndPoint(ip_adress, server_port);
-                    // Create a TCP/IP socket.
-                    ClientSocket = new Socket(AddressFamily.InterNetwork,
-                        SocketType.Dgram, ProtocolType.Udp)
-                    {
-                        ReceiveTimeout = TimeoutReceive,
-                        SendTimeout = TimeoutSend
-                    };
-                    // Connect to the remote endpoint.
-                    Task.Factory.StartNew(() =>
-                    {
-                        try
-                        {
-                            ClientSocket.Connect(remote_end_point);
-                            ServerEndPoint = ClientSocket.RemoteEndPoint;
-                            Buffer = new byte[SizeBuffer];
-                            ConnectedStatus = true;
-                            CallConnected();
-                            // Начинаем принимать сообщения
-                            ClientSocket.BeginReceiveFrom(Buffer, 0, Buffer.Length, SocketFlags.None,
-                                ref ServerEndPoint, new AsyncCallback(ReceiveCallback), null);
-                        }
-                        catch (SocketException ex)
-                        {
-                            CallErrorClient(ClientErrorType.ServerIsNotAvailable, ex.Message + ex.StackTrace);
-                            Disconnect();
-                        }
-                        catch (Exception ex)
-                        {
-                            CallErrorClient(ClientErrorType.ConnectSocketError, ex.Message);
-                            Disconnect();
-                        }
-                    });
-                }
-                catch (SocketException ex)
-                {
-                    CallErrorClient(ClientErrorType.ServerIsNotAvailable, ex.Message + ex.StackTrace);
-                    Disconnect();
-                }
-                catch (Exception ex)
-                {
-                    CallErrorClient(ClientErrorType.ConnectSocketError, ex.Message);
-                    Disconnect();
-                }
-            }
-            else
-            {
-                CallErrorClient(ClientErrorType.SocketIsConnected, "For a new connection, you must break the old");
             }
         }
         /// <summary>
