@@ -140,9 +140,9 @@ namespace C4C.Sockets.Tcp
                         }
                         catch { }
                         // Устанавливаем удаленную точку для сокета
-                        IPHostEntry ipHostInfo = Dns.Resolve(server_host);
-                        IPAddress ipAddress = ipHostInfo.AddressList[0];
-                        IPEndPoint remoteEP = new IPEndPoint(ipAddress, server_port);
+                        IPAddress[] server_host_list = Dns.GetHostAddresses(server_host);
+                        IPAddress ip_adress = Array.Find(server_host_list, o => o.AddressFamily == AddressFamily.InterNetwork);
+                        IPEndPoint remote_endpoint = new IPEndPoint(ip_adress, server_port);
                         // Create a TCP/IP socket.
                         ClientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
                         {
@@ -150,7 +150,7 @@ namespace C4C.Sockets.Tcp
                             SendTimeout = TimeoutSend
                         };
                         // Connect to the remote endpoint.
-                        ClientSocket.BeginConnect(remoteEP, new AsyncCallback(ConnectCallback), null);
+                        ClientSocket.BeginConnect(remote_endpoint, new AsyncCallback(ConnectCallback), null);
                     }
                     catch (SocketException ex)
                     {
