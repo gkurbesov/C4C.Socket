@@ -42,7 +42,7 @@ namespace ConsoleApp
         private static void Server_ReceiveMessage(object sender, ReceiveServerArgs e)
         {
             Console.WriteLine("Receive from client ", e.ClientID.ToString());
-            Console.WriteLine("Message: ", e.MessageString);
+            Console.WriteLine("Message: {0}", e.MessageString);
             // Return message
             //server.Send(e.ClientID, e.MessageBytes);
             server.Send(e.ClientID, e.MessageString);
