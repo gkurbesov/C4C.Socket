@@ -222,13 +222,10 @@ namespace C4C.Sockets.Udp
             {
                 if (IsListeningStatus != true)
                 {
-                    lock (ServerSocket)
+                    if (ServerSocket != null)
                     {
-                        if (ServerSocket != null)
-                        {
-                            ServerSocket.Dispose();
-                            ServerSocket = null;
-                        }
+                        ServerSocket.Dispose();
+                        ServerSocket = null;
                     }
                     // создаем сокет
                     ServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp)
