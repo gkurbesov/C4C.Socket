@@ -223,9 +223,15 @@ namespace C4C.Sockets.Tcp
                     {
                         CallErrorClient(ClientErrorType.CloseConnection, "Error in Shutdown - " + ex.Message);
                     }
+                    try
+                    {
                     ClientSocket.Close();
                     ClientSocket.Dispose();
-                    ClientSocket = null;
+                    }
+                    finally
+                    {
+                        ClientSocket = null;
+                    }
                 }
                 if (ConnectedStatus)
                 {
